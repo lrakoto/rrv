@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build.mjs",
-    "check": "node --check public/assets/config.js && node --check public/assets/content.js && node --check public/assets/site.js && npm run build",
-    "preview": "python3 -m http.server 8000 --directory dist"
+    "build:static": "node scripts/build.mjs --static",
+    "check": "node --check public/assets/config.js && node --check public/assets/content.js && node --check public/assets/site.js && node --check portal/web/portal.js && npm run build",
+    "preview": "node scripts/preview.mjs"
   }
 }

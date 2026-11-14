@@ -19,8 +19,9 @@ fail() {
   exit 1
 }
 
-[[ -f "$build_dir/index.html" && -d "$build_dir/assets" ]] || fail 'Build dist/ with npm run build first.'
-[[ -z $(find "$build_dir/index.html" "$build_dir/assets" ! -type f ! -type d -print) ]] ||
+[[ -f "$build_dir/index.html" && -d "$build_dir/assets" && -f "$build_dir/portal/index.html" && -f "$build_dir/portal/api.php" ]] ||
+  fail 'Build the website and portal with npm run build first.'
+[[ -z $(find "$build_dir/index.html" "$build_dir/assets" "$build_dir/portal" ! -type f ! -type d -print) ]] ||
   fail 'The release must contain only regular files and directories.'
 
 release=$(sed -nE 's/.*<meta name="rrv-release" content="([a-f0-9]{16})">.*/\1/p' "$build_dir/index.html")
@@ -45,18 +46,18 @@ if [[ $verify_only == false ]]; then
   # index so both the current page and the new page can load during publication.
   remote_script=$(cat <<'REMOTE'
 set -eu
-home="/home/$(id -un)"
-domain="$home/public_html/threeohfivestudios.com"
+account_dir="/home/$(id -un)"
+domain="$account_dir/public_html/threeohfivestudios.com"
 target="$domain/rrv"
-test "$HOME" = "$home"
+test "$HOME" = "$account_dir"
 test -d "$domain"
-test ! -L "$home/public_html"
+test ! -L "$account_dir/public_html"
 test ! -L "$domain"
 test ! -L "$target"
 
-exec 9>"$home/.rrv-deploy.lock"
+exec 9>"$account_dir/.rrv-deploy.lock"
 flock -x -w 30 9
-stage=$(mktemp -d "$home/.rrv-release.XXXXXXXX")
+stage=$(mktemp -d "$account_dir/.rrv-release.XXXXXXXX")
 next_index=''
 cleanup() {
   if [ -n "$next_index" ]; then rm -f -- "$next_index"; fi
@@ -68,19 +69,30 @@ tar -xf - -C "$stage"
 if [ ! -e "$target" ]; then mkdir -m 755 -- "$target"; fi
 test -d "$target"
 test ! -L "$target"
-test ! -L "$target/assets"
 test ! -L "$target/index.html"
-if [ -d "$target/assets" ]; then
-  test -z "$(find "$target/assets" -type l -print -quit)"
-fi
+for subtree in assets portal; do
+  test ! -L "$target/$subtree"
+  if [ -d "$target/$subtree" ]; then
+    test -z "$(find "$target/$subtree" -type l -print -quit)"
+  fi
+done
+php -r 'exit(PHP_VERSION_ID < 80100 || !extension_loaded("pdo_sqlite") || !extension_loaded("fileinfo"));'
+for source in "$stage/portal/api.php" "$stage"/portal/lib.*/*.php; do
+  php -l "$source"
+done
 rsync -rp --checksum --chmod=D755,F644 -- "$stage/assets/" "$target/assets/"
+mkdir -p -- "$target/portal"
+# Install versioned helpers before the API, then update the portal shell.
+rsync -rp --checksum --chmod=D755,F644 --exclude=/api.php --exclude=/index.html -- "$stage/portal/" "$target/portal/"
+rsync -p --checksum --chmod=F644 -- "$stage/portal/api.php" "$target/portal/api.php"
+rsync -p --checksum --chmod=F644 -- "$stage/portal/index.html" "$target/portal/index.html"
 next_index=$(mktemp "$target/.rrv-index.XXXXXXXX")
 install -m 644 -- "$stage/index.html" "$next_index"
 mv -fT -- "$next_index" "$target/index.html"
 next_index=''
 REMOTE
 )
-  COPYFILE_DISABLE=1 tar -C "$build_dir" -cf - index.html assets |
+  COPYFILE_DISABLE=1 tar -C "$build_dir" -cf - index.html assets portal |
     ssh "${ssh_options[@]}" "$ssh_host" "$remote_script"
 fi
 
@@ -93,19 +105,23 @@ fetch() {
 }
 
 verify_live() {
-  local html_type css_type hero_type
+  local html_type css_type hero_type portal_type session_type
   html_type=$(fetch "$site_url" "$scratch/index.html") && [[ $html_type == text/html* ]] &&
     grep -Fq "<meta name=\"rrv-release\" content=\"$release\">" "$scratch/index.html" &&
     grep -Fq "$css" "$scratch/index.html" && grep -Fq "$hero" "$scratch/index.html" &&
     css_type=$(fetch "$site_url${css#./}" "$scratch/site.css") && [[ $css_type == text/css* ]] &&
     cmp -s "$build_dir/$css" "$scratch/site.css" &&
     hero_type=$(fetch "$site_url${hero#./}" "$scratch/hero.webp") && [[ $hero_type == image/webp* ]] &&
-    cmp -s "$build_dir/$hero" "$scratch/hero.webp"
+    cmp -s "$build_dir/$hero" "$scratch/hero.webp" &&
+    portal_type=$(fetch "${site_url}portal/" "$scratch/portal.html") && [[ $portal_type == text/html* ]] &&
+    grep -Fq "<meta name=\"rrv-release\" content=\"$release\">" "$scratch/portal.html" &&
+    session_type=$(fetch "${site_url}portal/api.php?action=session" "$scratch/session.json") && [[ $session_type == application/json* ]] &&
+    grep -Eq '"user":null.*"csrf":"[a-f0-9]+' "$scratch/session.json"
 }
 
 for attempt in 1 2 3 4 5; do
   if verify_live; then
-    printf 'Verified %s (release %s), stylesheet and hero image.\n' "$site_url" "$release"
+    printf 'Verified %s (release %s), stylesheet, hero image and portal session.\n' "$site_url" "$release"
     exit 0
   fi
   if [[ $attempt -lt 5 ]]; then sleep 3; fi

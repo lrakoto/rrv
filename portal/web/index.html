@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#f6f3ed">
+  <title>Espace projets · RRV</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/mark.svg">
+  <link rel="stylesheet" href="./portal.css">
+  <script defer src="./portal.js"></script>
+</head>
+<body>
+  <a class="skip" href="#activity">Aller au contenu</a>
+  <header class="topbar">
+    <a class="brand" href="../">
+      <img src="../assets/mark.svg" width="36" height="36" alt="">
+      <span><strong>RRV</strong><small>Espace projets</small></span>
+    </a>
+    <div class="header-account" id="header-account" hidden>
+      <span class="account-icon" id="account-icon" aria-hidden="true"></span>
+      <span class="account-label"><strong id="account-name"></strong><small id="account-role"></small></span>
+      <button class="button secondary" id="sign-out" type="button">Se déconnecter</button>
+    </div>
+    <a class="home-link" id="site-link" href="../">Site RRV <span aria-hidden="true">↗</span></a>
+  </header>
+  <main id="activity" tabindex="-1">
+    <div class="startup" id="startup" role="status" hidden>Chargement de l’espace projets…</div>
+    <noscript><p class="startup">Activez JavaScript pour accéder à l’espace projets RRV.</p></noscript>
+
+    <section class="sign-in" id="sign-in" aria-labelledby="access-title" hidden>
+      <div class="sign-in-form">
+        <p class="eyebrow">Espace privé</p>
+        <h1 id="access-title">Connectez-vous.</h1>
+        <p id="access-description">Suivez votre chantier et retrouvez les documents partagés par RRV.</p>
+        <form id="access-form" class="field-stack" method="post">
+          <label>Adresse e-mail
+            <input name="email" type="email" autocomplete="username" required maxlength="254">
+          </label>
+          <label><span id="password-label">Mot de passe</span>
+            <input name="password" type="password" autocomplete="current-password" required maxlength="128">
+          </label>
+          <p class="field-help" id="access-hint" hidden>Choisissez un mot de passe d’au moins 12 caractères.</p>
+          <p class="form-message danger" id="access-error" role="alert" hidden></p>
+          <button class="button primary" id="access-submit" type="submit">Se connecter <span aria-hidden="true">↗</span></button>
+        </form>
+        <p class="invitation-note" id="invite-note">Votre premier accès est activé par une invitation de RRV.</p>
+        <a class="text-link" id="back-to-login" href="./" hidden>Revenir à la connexion</a>
+      </div>
+      <figure class="sign-in-photo">
+        <img src="../assets/construction-highlands.webp" width="1600" height="900" alt="">
+        <figcaption>Madagascar · Visuel d’illustration</figcaption>
+      </figure>
+    </section>
+
+    <div class="workspace" id="workspace" hidden>
+      <aside class="client-sidebar" id="client-sidebar" aria-labelledby="client-heading" hidden>
+        <div class="sidebar-title">
+          <h2 id="client-heading">Clients</h2>
+          <button class="square-button" type="button" data-action="new-client" aria-label="Ajouter un client">+</button>
+        </div>
+        <label class="search-field">
+          <span class="sr-only">Rechercher un client</span>
+          <input type="search" id="client-search" placeholder="Rechercher un client…" autocomplete="off">
+        </label>
+        <div class="client-list" id="client-list"></div>
+      </aside>
+      <section class="workspace-main" id="workspace-main" aria-labelledby="workspace-title">
+        <header class="workspace-heading" id="workspace-heading">
+          <div>
+            <p class="eyebrow" id="workspace-context"></p>
+            <h1 id="workspace-title" tabindex="-1">Espace projets</h1>
+            <p class="workspace-subtitle" id="workspace-subtitle"></p>
+          </div>
+          <div class="heading-actions" id="heading-actions"></div>
+        </header>
+        <p class="form-message workspace-message" id="workspace-message" role="status" hidden></p>
+        <nav class="section-nav" id="section-nav" aria-label="Dossier client" hidden>
+          <button type="button" data-tab="overview">Vue d’ensemble</button>
+          <button type="button" data-tab="tasks">Tâches</button>
+          <button type="button" data-tab="contract">Contrats</button>
+          <button type="button" data-tab="permit">Permis</button>
+          <button type="button" data-tab="access" id="access-tab" hidden>Accès client</button>
+        </nav>
+        <div id="section-content"></div>
+      </section>
+    </div>
+  </main>
+  <p class="global-message" id="global-message" role="status" hidden></p>
+  <dialog id="editor" aria-labelledby="dialog-title">
+    <div class="dialog-toolbar">
+      <h2 id="dialog-title"></h2>
+      <button class="square-button" type="button" data-action="close-editor" aria-label="Fermer">×</button>
+    </div>
+    <div id="dialog-content"></div>
+  </dialog>
+</body>
+</html>

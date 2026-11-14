@@ -1,16 +1,16 @@
 # RRV
 
-Standalone website for a construction contractor in Madagascar. French is the default, with Malagasy and English available in the language selector.
+Construction website and private project portal for RRV in Madagascar. The public site is available in French, Malagasy, and English. The portal is in French.
 
 ```sh
-npm run check   # Check the scripts and build dist/
-npm run preview # Serve dist/ at http://localhost:8000/
+npm run check
+npm run preview
 ```
 
-The build uses Node.js built-ins; no package installation is required. The preview command uses Python 3. To preview without a build, run `python3 -m http.server 8000 --directory public`.
+The build uses Node.js built-ins. The portal needs PHP 8.1 or newer with PDO_SQLite and Fileinfo. Set `PHP_BIN` if your PHP executable is outside your PATH. The preview listens on `http://127.0.0.1:8000/` and keeps its database under the ignored `.rrv-local/` folder.
 
-The project form prepares a brief in the visitor’s browser. The visitor can copy it or open a draft in their email app. To update the public inbox, edit [public/assets/config.js](public/assets/config.js), rebuild, and deploy. Leaving the address blank keeps the copy option and hides the email links.
+The [owner and client portal](https://threeohfivestudios.com/rrv/portal/) lets the owner manage client projects, progress updates, tasks, contracts, permits, attachments, and client invitations. See the [hosting guide](docs/hosting.md) for owner setup, deployment, and migration.
 
-The site lives at [threeohfivestudios.com/rrv/](https://threeohfivestudios.com/rrv/). Upload the contents of `dist/` to any static host to move it. Relative URLs work at a domain root or under a folder such as `/rrv/`. There is no runtime or database to migrate. See the [hosting guide](docs/hosting.md) for the exact release and migration steps.
+The public project form prepares a brief in the visitor’s browser. Visitors can copy it or open a draft in their email app. Edit [public/assets/config.js](public/assets/config.js) to change the public inbox, then rebuild and deploy.
 
-The [illustrative imagery](docs/imagery.md) does not depict verified RRV projects.
+For the public site alone, run `npm run build:static` and publish `dist/` to any static host. The [illustrative imagery](docs/imagery.md) does not depict verified RRV projects.
