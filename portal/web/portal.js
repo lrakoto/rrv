@@ -37,7 +37,7 @@
     permit: { list: 'Permis', single: 'permis', empty: 'Aucun permis' },
   };
 
-  const state = { user: null, csrf: '', clients: [], project: null, selectedId: null, tab: 'overview', invitation: null };
+  const state = { user: null, csrf: '', clients: [], project: null, selectedId: null, tab: 'overview', invitations: new Map() };
   let sessionRevision = 0;
   let loadingProject = 0;
   let announcementTimer;
@@ -171,7 +171,7 @@
     state.project = null;
     state.selectedId = null;
     state.tab = 'overview';
-    state.invitation = null;
+    state.invitations.clear();
     sectionContent.replaceChildren();
     $('#client-list').replaceChildren();
     headingActions.replaceChildren();
@@ -314,7 +314,6 @@
     if (!preserveTab) {
       state.project = null;
       state.tab = 'overview';
-      state.invitation = null;
       setMessage(workspaceMessage);
       renderClients();
       headingActions.replaceChildren();
@@ -506,7 +505,8 @@
     const inviteLabel = status === 'invited' ? 'Générer un nouveau lien' : status === 'active' ? 'Réinitialiser l’accès' : 'Créer une invitation';
     const actions = node('div', { class: 'panel-actions' }, button(inviteLabel, 'invite', { class: 'button primary' }));
     if (status === 'invited' || status === 'active') actions.append(button('Révoquer l’accès', 'revoke', { class: 'button remove' }));
-    const invitation = state.invitation?.id === Number(client.id) ? state.invitation : null;
+    const issued = state.invitations.get(Number(client.id));
+    const invitation = status === 'invited' && new Date(issued?.expiresAt).valueOf() > Date.now() ? issued : null;
     const invitationPanel = invitation ? node('div', { class: 'access-block' },
       node('label', {}, 'Lien d’activation à transmettre au client',
         node('input', { type: 'text', id: 'invite-link', value: invitation.url, readonly: true, spellcheck: 'false', autocomplete: 'off' }),
@@ -699,13 +699,11 @@
     const result = await request('invite', { data: { client_id: client.id } });
     const url = new URL('./', location.href);
     url.hash = new URLSearchParams({ activate: result.token }).toString();
-    if (state.selectedId === Number(client.id)) {
-      state.invitation = { id: Number(client.id), url: url.href, expiresAt: result.expires_at };
-      await afterSaving('Lien créé. Copiez-le pour le transmettre.');
-      setTimeout(() => $('#invite-link')?.focus(), 0);
-    } else {
-      await afterSaving(`Lien créé pour ${client.name}. Ouvrez son dossier pour générer un lien à transmettre.`);
-    }
+    state.invitations.set(Number(client.id), { url: url.href, expiresAt: result.expires_at });
+    await afterSaving(`Lien créé pour ${client.name}. Copiez-le pour le transmettre.`);
+    setTimeout(() => {
+      if (state.selectedId === Number(client.id)) $('#invite-link')?.focus();
+    }, 0);
   }
 
   async function copyInvitation() {
@@ -722,8 +720,9 @@
   }
 
   async function revokeAccess() {
-    await request('revoke', { data: { client_id: currentClient().id } });
-    state.invitation = null;
+    const id = currentClient().id;
+    await request('revoke', { data: { client_id: id } });
+    state.invitations.delete(Number(id));
     await afterSaving('Accès révoqué.');
   }
 
@@ -762,7 +761,7 @@
       }
       activationToken = null;
       await showWorkspace();
-      workspaceTitle.focus();
+      if (state.user) workspaceTitle.focus();
     } catch (error) {
       if (!isRetired(error)) setMessage(accessError, error.message, true);
     } finally {
