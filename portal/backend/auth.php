@@ -73,6 +73,8 @@ function auth_start(array $config): void
     ini_set('session.gc_maxlifetime', (string) RRV_AUTH_LIFETIME);
     session_name('RRVPortal' . substr(hash('sha256', $path), 0, 12));
     session_save_path($config['session_dir']);
+    // Keep the API's explicit cache policy when PHP starts the session.
+    session_cache_limiter('');
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => $path,
